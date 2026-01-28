@@ -4,12 +4,118 @@ vim.o.shiftwidth = 4
 vim.o.expandtab = true
 vim.o.tabstop = 4
 vim.o.termguicolors = true
-
+vim.opt.mouse = ""
+vim.o.cursorline = true
+vim.o.scrolloff = 10
+vim.schedule(
+    function()
+        vim.o.clipboard = "unnamedplus"
+    end
+)
+vim.o.mouse = ""
+vim.o.confirm = true
 vim.g.mapleader = " "
+vim.g.maplocalleader = "\\"
 
-vim.keymap.set("n", "<leader>1", "0")
-vim.keymap.set("n", "<leader>2", "$")
-vim.keymap.set("n", "d<leader>2", "d$")
-vim.keymap.set("n", "d<leader>1", "d0")
+vim.keymap.set({"n", "v"}, "<leader>h", "0")
+vim.keymap.set({"n", "v"}, "<leader>l", "$")
+vim.keymap.set("n", "c<leader>l", "c$")
+vim.keymap.set("n", "c<leader>h", "c0")
+vim.keymap.set("n", "d<leader>l", "d$")
+vim.keymap.set("n", "d<leader>h", "d0")
 vim.keymap.set({"n", "i", "v"}, "<C-s>", "<Esc>:w<CR>")
 vim.keymap.set({"n", "i", "v"}, "<C-q>", "<Esc>:wq<CR>")
+vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
+
+vim.keymap.set('n', '<C-t>', ':terminal<CR>')
+vim.keymap.set('t', '<Esc>', '<C-\\><C-n>')
+vim.keymap.set('n', '<C-t>', ':terminal<CR>')
+vim.keymap.set('n', '<leader>b', ':ls<CR>')
+vim.keymap.set('n', '<leader>1', ':b 1<CR>')
+vim.keymap.set('n', '<C-->', '<C-w>-')
+vim.keymap.set('n', '<C-+>', '<C-w>+')
+for i = 1, 9 do
+    vim.keymap.set('n', '<leader>' .. i, ':b ' .. i .. '<CR>')
+end
+vim.keymap.set('i', '(', '()<Esc>ha')
+vim.keymap.set('i', '{', '{}<Esc>ha')
+vim.keymap.set('i', '[', '[]<Esc>ha')
+vim.keymap.set('i', "'", "''<Esc>ha")
+vim.keymap.set('i', '"', '""<Esc>ha')
+vim.keymap.set('i', '`', '``<Esc>ha')
+
+local function fastDownScroll()
+    local winId = vim.api.nvim_get_current_win()
+    local winInfo = vim.fn.getwininfo(winId)[1]
+    print(vim.inspect(vim.fn.getwininfo(winId)[1]))
+    local top = winInfo.topline
+    local bot = winInfo.botline
+    local pos = vim.api.nvim_win_get_cursor(winId)[1]
+    local winHeight = bot - top
+    local view = vim.fn.winsaveview()
+    print(vim.inspect(view))
+    local topLine = view.topline
+    view.topline = topLine + winHeight - 4
+    local cursor = view.lnum
+    view.lnum = cursor + winHeight - 4
+    print(vim.inspect(view))
+    vim.fn.winrestview(view)
+end
+
+local function fastUpScroll()
+    local winId = vim.api.nvim_get_current_win()
+    local winInfo = vim.fn.getwininfo(winId)[1]
+    print(vim.inspect(vim.fn.getwininfo(winId)[1]))
+    local top = winInfo.topline
+    local bot = winInfo.botline
+    local winHeight = bot - top
+    local view = vim.fn.winsaveview()
+    print(vim.inspect(view))
+    local topLine = view.topline
+    view.topline = topLine - winHeight + 4
+    local cursor = view.lnum
+    view.lnum = cursor - winHeight + 4
+    print(vim.inspect(view))
+    vim.fn.winrestview(view)
+end
+
+vim.keymap.set({"n", "v"}, "<M-j>", fastDownScroll)
+vim.keymap.set({"n", "v"}, "<M-k>", fastUpScroll)
+
+local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
+if not (vim.uv or vim.loop).fs_stat(lazypath) then
+    local lazyrepo = "https://github.com/folke/lazy.nvim.git"
+    local out = vim.fn.system({ "git", "clone", "--filter=blob:none", "--branch=stable", lazyrepo, lazypath })
+    if vim.v.shell_error ~= 0 then
+        vim.api.nvim_echo({
+            { "Failed to clone lazy.nvim:\n", "ErrorMsg" },
+            { out, "WarningMsg" },
+            { "\nPress any key to exit..." },
+        }, true, {})
+        vim.fn.getchar()
+        os.exit(1)
+    end
+end
+vim.opt.rtp:prepend(lazypath)
+
+require("lazy").setup({
+    spec = {
+        {
+            'nvim-telescope/telescope.nvim',
+            dependencies = {
+                "nvim-lua/plenary.nvim",
+                { 'nvim-telescope/telescope-fzf-native.nvim', build = 'make' }
+            }
+        }
+    },
+    install = { colorscheme = { "habamax" } },
+    checker = { enabled = true },
+})
+
+local builtin = require('telescope.builtin')
+vim.keymap.set('n', '<leader>ff', builtin.find_files, { desc = 'Telescope find files' })
+vim.keymap.set('n', '<leader>fg', builtin.live_grep, { desc = 'Telescope live grep' })
+vim.keymap.set('n', '<leader>fb', builtin.buffers, { desc = 'Telescope buffers' })
+vim.keymap.set('n', '<leader>fh', builtin.help_tags, { desc = 'Telescope help tags' })
+vim.keymap.set('n', '<leader>m', ':messages<CR>')
+
