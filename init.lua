@@ -37,12 +37,12 @@ vim.keymap.set('n', '<C-+>', '<C-w>+')
 for i = 1, 9 do
     vim.keymap.set('n', '<leader>' .. i, ':b ' .. i .. '<CR>')
 end
-vim.keymap.set('i', '(', '()<Esc>ha')
-vim.keymap.set('i', '{', '{}<Esc>ha')
-vim.keymap.set('i', '[', '[]<Esc>ha')
-vim.keymap.set('i', "'", "''<Esc>ha")
-vim.keymap.set('i', '"', '""<Esc>ha')
-vim.keymap.set('i', '`', '``<Esc>ha')
+-- vim.keymap.set('i', '(', '()<Esc>ha')
+-- vim.keymap.set('i', '{', '{}<Esc>ha')
+-- vim.keymap.set('i', '[', '[]<Esc>ha')
+-- vim.keymap.set('i', "'", "''<Esc>ha")
+-- vim.keymap.set('i', '"', '""<Esc>ha')
+-- vim.keymap.set('i', '`', '``<Esc>ha')
 
 local function fastDownScroll()
     local winId = vim.api.nvim_get_current_win()
@@ -101,8 +101,9 @@ vim.opt.rtp:prepend(lazypath)
 require("lazy").setup({
     spec = {
     },
-    install = { colorscheme = { "habamax" } },
+    install = { colorscheme = { "habamax", "nightfox" } },
     checker = { enabled = true },
 })
 
+vim.cmd('colorscheme habamax')
 
