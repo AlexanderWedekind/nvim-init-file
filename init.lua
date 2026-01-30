@@ -48,35 +48,35 @@ end
 local function fastDownScroll()
     local winId = vim.api.nvim_get_current_win()
     local winInfo = vim.fn.getwininfo(winId)[1]
-    print(vim.inspect(vim.fn.getwininfo(winId)[1]))
+--    print(vim.inspect(vim.fn.getwininfo(winId)[1]))
     local top = winInfo.topline
     local bot = winInfo.botline
     local pos = vim.api.nvim_win_get_cursor(winId)[1]
     local winHeight = bot - top
     local view = vim.fn.winsaveview()
-    print(vim.inspect(view))
+--    print(vim.inspect(view))
     local topLine = view.topline
     view.topline = topLine + winHeight - 4
     local cursor = view.lnum
     view.lnum = cursor + winHeight - 4
-    print(vim.inspect(view))
+--    print(vim.inspect(view))
     vim.fn.winrestview(view)
 end
 
 local function fastUpScroll()
     local winId = vim.api.nvim_get_current_win()
     local winInfo = vim.fn.getwininfo(winId)[1]
-    print(vim.inspect(vim.fn.getwininfo(winId)[1]))
+--    print(vim.inspect(vim.fn.getwininfo(winId)[1]))
     local top = winInfo.topline
     local bot = winInfo.botline
     local winHeight = bot - top
     local view = vim.fn.winsaveview()
-    print(vim.inspect(view))
+--    print(vim.inspect(view))
     local topLine = view.topline
     view.topline = topLine - winHeight + 4
     local cursor = view.lnum
     view.lnum = cursor - winHeight + 4
-    print(vim.inspect(view))
+--    print(vim.inspect(view))
     vim.fn.winrestview(view)
 end
 
@@ -84,22 +84,17 @@ vim.keymap.set({"n", "v"}, "<M-j>", fastDownScroll)
 vim.keymap.set({"n", "v"}, "<M-k>", fastUpScroll)
 
 local function checkForPlugin(plugin)
-    if not vim.uv.fs_stat(plugin.path) then
+    if not vim.uv.fs_stat(plugins.path(plugin)) then
         return talse
     else
         return true
 	end
 end
 
+local dataPath = vim.fn.stdpath('data') .. '/site/pack/'
+
 local function getPlugin(plugin)
-    local path = ''
-    if plugin.optional == true then
-        path = plugin.dataPath .. plugin.org .. '/opt/' .. plugin.name .. '.nvim'
-    else
-        path = plugin.dataPath .. plugin.org .. '/start/' .. plugin.name .. '.nvim'
-    end
--- https://github.com/EdenEast/nightfox.nvim.git
-    vim.cmd(':!git clone https://github.com/' .. plugin.repo(plugin) .. ' ' .. path .. '<CR>')
+   vim.cmd(':!git clone https://github.com/' .. plugins.repo(plugin) .. ' ' .. plugins.path(plugin) .. '<CR>')
     if plugin.optional == true then
         vim.cmd(':packadd! ' .. plugin.name .. '<CR>')
     end
@@ -107,21 +102,29 @@ local function getPlugin(plugin)
 end
 
 local plugins = {
-    {
-        name = 'nightfox',
-        org = 'EdenEast',
-        dataPath = vim.fn.stdpath('data') .. '/site/pack/',
-        repo = function(plugin)
-                return plugin.org .. '/' .. plugin.name .. '.nvim.git'
-            end,
-        optional = false
-    }
+    plugins = {
+        {
+            name = 'nightfox',
+            org = 'EdenEast',
+            optional = false,
+        }
+    },
+    repo = function(plugin)
+            return plugin.org .. '/' .. plugin.name .. '.nvim.git'
+        end,
+    path = function(plugin)
+        if plugin.optional == true then
+            return dataPath .. plugin.org .. '/opt/' .. plugin.name .. '.nvim'
+        else
+            return dataPath .. plugin.org .. '/start/' .. plugin.name .. '.nvim'
+        end
+    end
 }
 
 local function checkAllPlugins(plugins)
-    for i, plugin in plugins do
-        if checkForPlugin(plugins[i]) == false then
-            getPlugin(plugin[i])
+    for i, plugin in ipairs(plugins.plugins) do
+        if checkForPlugin(plugins.plugins[i]) == false then
+            getPlugin(plugins.plugins[i])
         end
     end
 end
