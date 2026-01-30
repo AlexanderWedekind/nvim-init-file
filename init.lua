@@ -26,6 +26,7 @@ vim.keymap.set("n", "d<leader>h", "d0")
 vim.keymap.set({"n", "i", "v"}, "<C-s>", "<Esc>:w<CR>")
 vim.keymap.set({"n", "i", "v"}, "<C-q>", "<Esc>:wq<CR>")
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
+vim.keymap.set('n', '<leader>m', ':messages<CR>')
 
 vim.keymap.set('n', '<C-t>', ':terminal<CR>')
 vim.keymap.set('t', '<Esc>', '<C-\\><C-n>')
@@ -82,6 +83,51 @@ end
 vim.keymap.set({"n", "v"}, "<M-j>", fastDownScroll)
 vim.keymap.set({"n", "v"}, "<M-k>", fastUpScroll)
 
+local function checkForPlugin(plugin)
+    if not vim.uv.fs_stat(plugin.path) then
+        return talse
+    else
+        return true
+	end
+end
+
+local function getPlugin(plugin)
+    local path = ''
+    if plugin.optional == true then
+        path = plugin.dataPath .. plugin.org .. '/opt/' .. plugin.name .. '.nvim'
+    else
+        path = plugin.dataPath .. plugin.org .. '/start/' .. plugin.name .. '.nvim'
+    end
+-- https://github.com/EdenEast/nightfox.nvim.git
+    vim.cmd(':!git clone https://github.com/' .. plugin.repo(plugin) .. ' ' .. path .. '<CR>')
+    if plugin.optional == true then
+        vim.cmd(':packadd! ' .. plugin.name .. '<CR>')
+    end
+    vim.cmd(':helptags ' .. path .. '/doc')
+end
+
+local plugins = {
+    {
+        name = 'nightfox',
+        org = 'EdenEast',
+        dataPath = vim.fn.stdpath('data') .. '/site/pack/',
+        repo = function(plugin)
+                return plugin.org .. '/' .. plugin.name .. '.nvim.git'
+            end,
+        optional = false
+    }
+}
+
+local function checkAllPlugins(plugins)
+    for i, plugin in plugins do
+        if checkForPlugin(plugins[i]) == false then
+            getPlugin(plugin[i])
+        end
+    end
+end
+
+checkAllPlugins(plugins)
+
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not (vim.uv or vim.loop).fs_stat(lazypath) then
     local lazyrepo = "https://github.com/folke/lazy.nvim.git"
@@ -105,5 +151,6 @@ require("lazy").setup({
     checker = { enabled = true },
 })
 
-vim.cmd('colorscheme habamax')
+vim.cmd(':colorscheme nightfox')
+-- vim.cmd('colorscheme habamax')
 
