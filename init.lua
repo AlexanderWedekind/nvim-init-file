@@ -83,23 +83,7 @@ end
 vim.keymap.set({"n", "v"}, "<M-j>", fastDownScroll)
 vim.keymap.set({"n", "v"}, "<M-k>", fastUpScroll)
 
-local function checkForPlugin(plugin)
-    if not vim.uv.fs_stat(plugins.path(plugin)) then
-        return talse
-    else
-        return true
-	end
-end
-
 local dataPath = vim.fn.stdpath('data') .. '/site/pack/'
-
-local function getPlugin(plugin)
-   vim.cmd(':!git clone https://github.com/' .. plugins.repo(plugin) .. ' ' .. plugins.path(plugin) .. '<CR>')
-    if plugin.optional == true then
-        vim.cmd(':packadd! ' .. plugin.name .. '<CR>')
-    end
-    vim.cmd(':helptags ' .. path .. '/doc')
-end
 
 local plugins = {
     plugins = {
@@ -110,7 +94,7 @@ local plugins = {
         }
     },
     repo = function(plugin)
-            return plugin.org .. '/' .. plugin.name .. '.nvim.git'
+            return 'https://github.com/' .. plugin.org .. '/' .. plugin.name .. '.nvim.git'
         end,
     path = function(plugin)
         if plugin.optional == true then
@@ -121,39 +105,71 @@ local plugins = {
     end
 }
 
+local function checkForPlugin(plugin)
+    print('- checking for ' .. plugin.name .. '...')
+    if not vim.loop.fs_stat(plugins.path(plugin)) then
+        print('...not found')
+        return false
+    else
+        print('is installed')
+        return true
+	end
+end
+
+local function getPlugin(plugin)
+    print('getting ' .. plugin.name)
+    print('cloning ' .. plugins.repo(plugin))
+    local output = vim.fn.system({'git', 'clone', plugins.repo(plugin), plugins.path(plugin)})
+    print('output: ' .. output)
+    if plugin.optional == true then
+        vim.cmd('packadd! ', plugin.name)
+    end
+    print("doing 'freshly installed helptags'")
+    vim.cmd('helptags ' .. plugins.path(plugin) .. '/doc')
+end
+
 local function checkAllPlugins(plugins)
     for i, plugin in ipairs(plugins.plugins) do
         if checkForPlugin(plugins.plugins[i]) == false then
             getPlugin(plugins.plugins[i])
+        else
+            print("doing 'allready installed helptags'")
+            vim.cmd('helptags ' .. plugins.path(plugin) .. '/doc')
         end
     end
 end
 
 checkAllPlugins(plugins)
 
-local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
-if not (vim.uv or vim.loop).fs_stat(lazypath) then
-    local lazyrepo = "https://github.com/folke/lazy.nvim.git"
-    local out = vim.fn.system({ "git", "clone", "--filter=blob:none", "--branch=stable", lazyrepo, lazypath })
-    if vim.v.shell_error ~= 0 then
-        vim.api.nvim_echo({
-            { "Failed to clone lazy.nvim:\n", "ErrorMsg" },
-            { out, "WarningMsg" },
-            { "\nPress any key to exit..." },
-        }, true, {})
-        vim.fn.getchar()
-        os.exit(1)
-    end
-end
-vim.opt.rtp:prepend(lazypath)
+vim.schedule(function()
+    vim.cmd('colorscheme nightfox')
+end)
 
-require("lazy").setup({
-    spec = {
-    },
-    install = { colorscheme = { "habamax", "nightfox" } },
-    checker = { enabled = true },
-})
-
-vim.cmd(':colorscheme nightfox')
--- vim.cmd('colorscheme habamax')
-
+-- blue           
+-- ~            carbonfox      
+-- ~            darkblue       
+-- ~            dawnfox        
+-- ~            dayfox         
+-- ~            default        
+-- ~            delek          
+-- ~            desert         
+-- ~            duskfox        
+-- ~ ok-ish     elflord       deep black, yellow line nr, neon text, perfect closing bracket cursor 
+-- ~            evening        
+-- ~ good + broken     habamax       very dark pleasant grey, clear grey line nr, nice orange current line, subtle/non intrusive but clear to see current line highlight, gentle but good coloured text, terrible closing bracket cursor completely confusing and makes whole scheme unuseable 
+-- ~    bad     industry       
+-- ~ 1 feature  koehler        like default but with deep black bg, annoying to look at, PERFECT closing bracket cursor
+-- ~            lunaperche     
+-- ~            morning        
+-- ~            murphy         
+-- ~            nightfox       
+-- ~            nordfox        
+-- ~  meh/ok    pablo          
+-- ~            peachpuff      
+-- ~  ok-ish    quiet         deep black, monochrome, all good, perfect closing bracket cursor, white text and grey comments, literally NO other colour highlight - not even strings 
+-- ~            ron            
+-- ~            shine          
+-- ~            slate          
+-- ~            terafox        
+-- ~            torte          
+-- init.lua     zellner     
