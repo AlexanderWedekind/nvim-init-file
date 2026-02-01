@@ -83,6 +83,18 @@ end
 vim.keymap.set({"n", "v"}, "<M-j>", fastDownScroll)
 vim.keymap.set({"n", "v"}, "<M-k>", fastUpScroll)
 
+local function safeCall(callThis, ...)
+    local function errorHandler(error)
+        return debug.traceback(error, 2)
+    end
+    local success, error = xpcall(function(...)
+        return callThis(...)
+    end, errorHandler, ...)
+    if not success then
+        vim.notify(error, vim.log.levels.ERROR)
+    end
+end
+
 local dataPath = vim.fn.stdpath('data') .. '/site/pack/'
 
 local plugins = {
@@ -91,6 +103,48 @@ local plugins = {
             name = 'nightfox',
             org = 'EdenEast',
             optional = false,
+            helpDocs = true,
+            setup = false,
+            setupParams = {}
+        },
+        {
+            org = 'vague-theme',
+            name = 'vague',
+            optional = false,
+            helpDocs = false,
+            setup = true,
+            setupParams = {}
+    	},
+        {
+            org = 'rebelot',
+            name = 'kanagawa',
+            optional = false,
+            helpDocs = false,
+            setUp = true,
+            setupParams = {
+                compile = false,             -- enable compiling the colorscheme
+                undercurl = true,            -- enable undercurls
+                commentStyle = { italic = true },
+                functionStyle = {},
+                keywordStyle = { italic = true},
+                statementStyle = { bold = true },
+                typeStyle = {},
+                transparent = false,         -- do not set background color
+                dimInactive = false,         -- dim inactive window `:h hl-NormalNC`
+                terminalColors = true,       -- define vim.g.terminal_color_{0,17}
+                colors = {                   -- add/modify theme and palette colors
+                    palette = {},
+                    theme = { wave = {}, lotus = {}, dragon = {}, all = {} },
+                },
+                overrides = function(colors) -- add/modify highlights
+                    return {}
+                end,
+                theme = "wave",              -- Load "wave" theme
+                background = {               -- map the value of 'background' option to a theme
+                    dark = "wave",           -- try "dragon" !
+                    light = "lotus"
+                },
+            }
         }
     },
     repo = function(plugin)
@@ -124,8 +178,10 @@ local function getPlugin(plugin)
     if plugin.optional == true then
         vim.cmd('packadd! ', plugin.name)
     end
-    print("doing 'freshly installed helptags'")
-    vim.cmd('helptags ' .. plugins.path(plugin) .. '/doc')
+    if plugin.helpDocs == true then
+        print("doing 'freshly installed helptags'")
+        vim.cmd('helptags ' .. plugins.path(plugin) .. '/doc')
+    end
 end
 
 local function checkAllPlugins(plugins)
@@ -133,19 +189,24 @@ local function checkAllPlugins(plugins)
         if checkForPlugin(plugins.plugins[i]) == false then
             getPlugin(plugins.plugins[i])
         else
-            print("doing 'allready installed helptags'")
-            vim.cmd('helptags ' .. plugins.path(plugin) .. '/doc')
+            if plugin.helpDocs == true then
+                print("doing 'allready installed helptags'")
+                vim.cmd('helptags ' .. plugins.path(plugin) .. '/doc')
+            end
+        end
+        if plugin.setup then
+            safeCall(require(plugin.name).setup, plugin.setupParams)
         end
     end
 end
 
-checkAllPlugins(plugins)
 
-vim.schedule(function()
-    vim.cmd('colorscheme nightfox')
-end)
+safeCall(checkAllPlugins, plugins)
+-- safeCall(require('vague').setup, {})
+-- safeCall(require('kanagawa').setup, {})
+safeCall(vim.cmd, 'colorscheme kanagawa')
 
--- blue           
+    -- blue           
 -- ~            carbonfox      
 -- ~            darkblue       
 -- ~            dawnfox        
