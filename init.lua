@@ -7,6 +7,8 @@ vim.o.termguicolors = true
 vim.opt.mouse = ""
 vim.o.cursorline = true
 vim.o.scrolloff = 10
+vim.o.splitbelow = false
+vim.o.splitright = false
 vim.schedule(
     function()
         vim.o.clipboard = "unnamedplus"
@@ -30,11 +32,26 @@ vim.keymap.set('n', '<leader>m', ':messages<CR>')
 
 vim.keymap.set('n', '<C-t>', ':terminal<CR>')
 vim.keymap.set('t', '<Esc>', '<C-\\><C-n>')
-vim.keymap.set('n', '<C-t>', ':terminal<CR>')
 vim.keymap.set('n', '<leader>b', ':ls<CR>')
-vim.keymap.set('n', '<leader>1', ':b 1<CR>')
 vim.keymap.set('n', '<C-->', '<C-w>-')
 vim.keymap.set('n', '<C-+>', '<C-w>+')
+
+vim.keymap.set('n', '<leader>d', function()
+    local bufnr = vim.api.nvim_get_current_buf()
+    local attached = false
+    for _, client in pairs(vim.lsp.get_active_clients()) do
+        if client.attached_buffers[bufnr] then
+            attached = true
+            break
+        end
+    end
+    if attached then
+        vim.lsp.buf.hover()
+    else
+        vim.notify("No LSP attached to this buffer", vim.log.levels.WARN)
+    end
+end, { noremap = true, silent = true })
+
 for i = 1, 9 do
     vim.keymap.set('n', '<leader>' .. i, ':b ' .. i .. '<CR>')
 end
@@ -100,8 +117,9 @@ local dataPath = vim.fn.stdpath('data') .. '/site/pack/'
 local plugins = {
     plugins = {
         {
-            name = 'nightfox',
             org = 'EdenEast',
+            name = 'nightfox',
+            gitName = 'nightfox.nvim',
             optional = false,
             helpDocs = true,
             setup = false,
@@ -110,6 +128,7 @@ local plugins = {
         {
             org = 'vague-theme',
             name = 'vague',
+            gitName = 'vague.nvim',
             optional = false,
             helpDocs = false,
             setup = true,
@@ -118,9 +137,10 @@ local plugins = {
         {
             org = 'rebelot',
             name = 'kanagawa',
+            gitName = 'kanagawa.nvim',
             optional = false,
             helpDocs = false,
-            setUp = true,
+            setup = true,
             setupParams = {
                 compile = false,             -- enable compiling the colorscheme
                 undercurl = true,            -- enable undercurls
@@ -144,17 +164,17 @@ local plugins = {
                     dark = "wave",           -- try "dragon" !
                     light = "lotus"
                 },
-            }
+            },
         }
     },
     repo = function(plugin)
-            return 'https://github.com/' .. plugin.org .. '/' .. plugin.name .. '.nvim.git'
+            return 'https://github.com/' .. plugin.org .. '/' .. plugin.gitName .. '.git'
         end,
     path = function(plugin)
         if plugin.optional == true then
-            return dataPath .. plugin.org .. '/opt/' .. plugin.name .. '.nvim'
+            return dataPath .. plugin.org .. '/opt/' .. plugin.gitName
         else
-            return dataPath .. plugin.org .. '/start/' .. plugin.name .. '.nvim'
+            return dataPath .. plugin.org .. '/start/' .. plugin.gitName
         end
     end
 }
@@ -176,26 +196,33 @@ local function getPlugin(plugin)
     local output = vim.fn.system({'git', 'clone', plugins.repo(plugin), plugins.path(plugin)})
     print('output: ' .. output)
     if plugin.optional == true then
-        vim.cmd('packadd! ', plugin.name)
+        safeCall(vim.cmd, 'packadd! ' .. plugin.name)
     end
     if plugin.helpDocs == true then
-        print("doing 'freshly installed helptags'")
-        vim.cmd('helptags ' .. plugins.path(plugin) .. '/doc')
+        print("getting freshly installed plugin's helptags'")
+        safeCall(vim.cmd, 'helptags ' .. plugins.path(plugin) .. '/doc')
+    else
+        print('no help docs or tags for this one')
     end
 end
 
 local function checkAllPlugins(plugins)
     for i, plugin in ipairs(plugins.plugins) do
-        if checkForPlugin(plugins.plugins[i]) == false then
-            getPlugin(plugins.plugins[i])
+        if checkForPlugin(plugin) == false then
+            getPlugin(plugin)
         else
             if plugin.helpDocs == true then
-                print("doing 'allready installed helptags'")
-                vim.cmd('helptags ' .. plugins.path(plugin) .. '/doc')
+                print("getting allready installed plugin's helptags")
+                safeCall(vim.cmd, 'helptags ' .. plugins.path(plugin) .. '/doc')
+            else
+                print('no help docs or tags for this one')
             end
         end
         if plugin.setup then
+            print('setup...')
             safeCall(require(plugin.name).setup, plugin.setupParams)
+        else
+            print('NOT doing setup')
         end
     end
 end
@@ -206,6 +233,53 @@ safeCall(checkAllPlugins, plugins)
 -- safeCall(require('kanagawa').setup, {})
 safeCall(vim.cmd, 'colorscheme kanagawa')
 
+vim.api.nvim_create_autocmd("FileType", {
+    pattern = "lua",
+    callback = function()
+        vim.lsp.start({
+            name = "lua_ls",
+            cmd = { "lua-language-server" },
+            root_dir = vim.fs.dirname(vim.fs.find({".git", ".luarc.json", ".luarc.jsonc"}, { upward = true })[1]),
+            settings = {
+                Lua = {
+                    codeLens = { enable = true },
+                    hint = { enable = true, semicolon = "Disable" },
+                },
+            },
+        })
+    end,
+})
+
+vim.api.nvim_create_autocmd('FileType', {
+    pattern = 'python',
+    callback = function()
+        vim.lsp.start({
+            name = 'pylsp',
+            cmd = {'pylsp'},
+            root_dir = vim.fs.dirname(vim.fs.find({".git", "pyproject.toml"}, { upward = true })[1]),
+            settings = {
+                pylsp = {
+                    pyflakes = { enabled = true },
+                    configurationSources = {'pycodestyle'},
+                    plugins = {
+                        jedi_completion = {
+                            enabled = true,
+                            fuzzy = true
+                        },
+                        pycodestyle = {
+                            enabled = true,
+                            indent = 4
+                        }
+                    }
+                },
+            }
+        })
+        print("tried to start 'pylsp'")
+    end,
+})
+
+
+ 
     -- blue           
 -- ~            carbonfox      
 -- ~            darkblue       
