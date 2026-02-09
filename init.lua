@@ -30,7 +30,7 @@ vim.keymap.set({"n", "i", "v"}, "<C-q>", "<Esc>:wq<CR>")
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 vim.keymap.set('n', '<leader>m', ':messages<CR>')
 
-vim.keymap.set('n', '<C-t>', ':terminal<CR>')
+vim.keymap.set('n', '<C-t>', ':tabnew<CR>:terminal<CR>')
 vim.keymap.set('t', '<Esc>', '<C-\\><C-n>')
 vim.keymap.set('n', '<leader>b', ':ls<CR>')
 vim.keymap.set('n', '<C-->', '<C-w>-')
@@ -52,9 +52,24 @@ vim.keymap.set('n', '<leader>d', function()
     end
 end, { noremap = true, silent = true })
 
-for i = 1, 9 do
-    vim.keymap.set('n', '<leader>' .. i, ':b ' .. i .. '<CR>')
+for i = 1, 30 do
+    vim.keymap.set('n', '<leader>' .. i .. 'b', ':b ' .. i .. '<CR>')
 end
+
+local function closeAllOtherTabs()
+    vim.cmd('tabonly')
+end
+
+for i = 1, 30 do
+    vim.keymap.set('n', '<leader>' .. i .. 't', ':tabnext ' .. i .. '<CR>')
+end
+vim.keymap.set('n', '<leader>t', ':tabs<CR>')
+vim.keymap.set('n', '<Tab>', ':tabnext<CR>')
+vim.keymap.set('n', '<S-Tab>', ':tabprevious<CR>')
+vim.keymap.set('n', '<leader>q', ':tabclose<CR>')
+vim.keymap.set('n', '<leader>n', ':tabnew<CR>')
+vim.keymap.set('n', '<leader>Q', closeAllOtherTabs)
+vim.keymap.set('n', '<leader>f', ':tabnew<CR>:e ')
 -- vim.keymap.set('i', '(', '()<Esc>ha')
 -- vim.keymap.set('i', '{', '{}<Esc>ha')
 -- vim.keymap.set('i', '[', '[]<Esc>ha')
@@ -259,21 +274,43 @@ vim.api.nvim_create_autocmd('FileType', {
             root_dir = vim.fs.dirname(vim.fs.find({".git", "pyproject.toml"}, { upward = true })[1]),
             settings = {
                 pylsp = {
-                    pyflakes = { enabled = true },
                     configurationSources = {'pycodestyle'},
                     plugins = {
                         jedi_completion = {
                             enabled = true,
-                            fuzzy = true
+                            fuzzy = true,
+                            include_params = true
+                        },
+                        jedi = {
+                            extra_paths = {
+                                '/home/alex/repos/picar-x',
+                                '/home/alex/repos/robot_hat'
+                            }
+                        },
+                        jedi_definition = {
+                            enabled = true,
+                            follow_imports = true
+                        },
+                        jedi_hover = {
+                            enabled = true,
+                        },
+                        jedi_symbols = {
+                            enabled = true
+                        },
+                        jedi_references = {
+                            enabled = true
                         },
                         pycodestyle = {
                             enabled = true,
                             indent = 4
+                        },
+                        pyflakes = {
+                            enabled = true
                         }
                     }
                 },
             }
-        })
+    	})
         print("tried to start 'pylsp'")
     end,
 })
