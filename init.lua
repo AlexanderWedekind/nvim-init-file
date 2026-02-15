@@ -1,3 +1,11 @@
+local function tableLength(table)
+    local count = 0
+    for _ in pairs(table) do
+        count = count + 1
+    end
+    return count
+end
+
 vim.o.number = true
 vim.o.relativenumber = true
 vim.o.shiftwidth = 4
@@ -66,9 +74,34 @@ end
 vim.keymap.set('n', '<leader>t', ':tabs<CR>')
 vim.keymap.set('n', '<Tab>', ':tabnext<CR>')
 vim.keymap.set('n', '<S-Tab>', ':tabprevious<CR>')
-vim.keymap.set('n', '<leader>q', ':tabclose<CR>')
+vim.keymap.set('n', '<leader>q', function()
+    local buffNumberList = vim.fn.tabpagebuflist()
+    for _, buffNumber in ipairs(buffNumberList) do
+        vim.cmd('bd' .. buffNumber)
+    end
+end)
 vim.keymap.set('n', '<leader>n', ':tabnew<CR>')
-vim.keymap.set('n', '<leader>Q', closeAllOtherTabs)
+vim.keymap.set('n', '<leader>Q', function()
+    local tabNumberList = vim.api.nvim_list_tabpages()
+    local tabs = tableLength(tabNumberList)
+    local tab = 1
+    local function closeTabBuffers()
+        local currentTabNumber = vim.api.nvim_get_current_tabpage()
+        if tab == currentTabNumber then
+            tab = tab + 1
+        elseif tab ~= currentTabNumber then
+            local buffNumberList = vim.fn.tabpagebuflist(tab)
+            for _, buffNumber in ipairs(buffNumberList) do
+                vim.cmd('bd' .. buffNumber)
+            end
+            tab = 1
+            tabs = tabs - 1
+        end
+    end
+    while tabs > 1 do
+        closeTabBuffers()
+    end
+end)
 vim.keymap.set('n', '<leader>f', ':tabnew<CR>:e ')
 vim.keymap.set('c','help ', '<Esc>:tab help ')
 vim.keymap.set({'i', 'c', 't'}, '<M-h>', '<Esc>')
