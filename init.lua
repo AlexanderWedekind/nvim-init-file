@@ -108,16 +108,6 @@ vim.keymap.set({'i', 'c', 't'}, '<M-h>', '<Esc>')
 vim.keymap.set({'i', 'c', 't'}, '<M-j>', '<Esc>')
 vim.keymap.set({'i', 'c', 't'}, '<M-k>', '<Esc>')
 vim.keymap.set({'i', 'c', 't'}, '<M-l>', '<Esc>')
--- vim.keymap.set('c', 'help ', function()
---     local searchTerm = vim.fn.input('Enter help search-term: ')
---     vim.cmd('tab help ' .. searchTerm)
--- end)
--- vim.keymap.set('i', '(', '()<Esc>ha')
--- vim.keymap.set('i', '{', '{}<Esc>ha')
--- vim.keymap.set('i', '[', '[]<Esc>ha')
--- vim.keymap.set('i', "'", "''<Esc>ha")
--- vim.keymap.set('i', '"', '""<Esc>ha')
--- vim.keymap.set('i', '`', '``<Esc>ha')
 
 local function fastDownScroll()
     local winId = vim.api.nvim_get_current_win()
@@ -306,6 +296,24 @@ vim.api.nvim_create_autocmd("FileType", {
         })
     end,
 })
+
+vim.api.nvim_create_autocmd("Filetype", {
+    pattern = 'php',
+    callback = function()
+        print('starting php-language-server')
+        vim.lsp.start({
+            name = 'php-language-server',
+            cmd = {'php ./vendor/felixfbecker/language-server/bin/php-language-server.php'},
+        })
+    end
+})
+
+vim.api.nvim_create_autocmd("Filetype", {
+    pattern = 'js',
+    callback = function()
+    end
+})
+
 
 vim.api.nvim_create_autocmd('FileType', {
     pattern = 'python',
