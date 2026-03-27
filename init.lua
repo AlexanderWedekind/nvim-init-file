@@ -304,6 +304,21 @@ vim.api.nvim_create_autocmd("FileType", {
 })
 
 vim.api.nvim_create_autocmd("Filetype", {
+    pattern = 'csharp',
+    callback = function()
+        vim.lsp.start({
+            name = 'c-sharp',
+            cmd = {'something'},
+            root_dir = vim.fs.dirname(vim.fs.find({".git", ".luarc.json", ".luarc.jsonc"}, { upward = true })[1]),
+            settings = {
+                csharp = {
+                }
+            }
+        })
+    end
+})
+
+vim.api.nvim_create_autocmd("Filetype", {
     pattern = 'php',
     callback = function()
         print('starting php-language-server')
