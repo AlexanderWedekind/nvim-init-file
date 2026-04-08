@@ -110,43 +110,37 @@ vim.keymap.set('n', '<leader>Q', function()
 end)
 vim.keymap.set('n', '<leader>f', ':tabnew<CR>:e ')
 vim.keymap.set('c','help ', '<Esc>:tab help ')
-vim.keymap.set({'i', 'c', 't'}, '<M-h>', '<Esc>')
-vim.keymap.set({'i', 'c', 't'}, '<M-j>', '<Esc>')
-vim.keymap.set({'i', 'c', 't'}, '<M-k>', '<Esc>')
-vim.keymap.set({'i', 'c', 't'}, '<M-l>', '<Esc>')
+vim.keymap.set({'i', 'c', 't'}, '<M-h>', '<Esc>h')
+vim.keymap.set({'i', 'c', 't'}, '<M-j>', '<Esc>j')
+vim.keymap.set({'i', 'c', 't'}, '<M-k>', '<Esc>k')
+vim.keymap.set({'i', 'c', 't'}, '<M-l>', '<Esc>l')
 
 local function fastDownScroll()
     local winId = vim.api.nvim_get_current_win()
     local winInfo = vim.fn.getwininfo(winId)[1]
---    print(vim.inspect(vim.fn.getwininfo(winId)[1]))
     local top = winInfo.topline
     local bot = winInfo.botline
     local pos = vim.api.nvim_win_get_cursor(winId)[1]
     local winHeight = bot - top
     local view = vim.fn.winsaveview()
---    print(vim.inspect(view))
     local topLine = view.topline
     view.topline = topLine + winHeight - 4
     local cursor = view.lnum
     view.lnum = cursor + winHeight - 4
---    print(vim.inspect(view))
     vim.fn.winrestview(view)
 end
 
 local function fastUpScroll()
     local winId = vim.api.nvim_get_current_win()
     local winInfo = vim.fn.getwininfo(winId)[1]
---    print(vim.inspect(vim.fn.getwininfo(winId)[1]))
     local top = winInfo.topline
     local bot = winInfo.botline
     local winHeight = bot - top
     local view = vim.fn.winsaveview()
---    print(vim.inspect(view))
     local topLine = view.topline
     view.topline = topLine - winHeight + 4
     local cursor = view.lnum
     view.lnum = cursor - winHeight + 4
---    print(vim.inspect(view))
     vim.fn.winrestview(view)
 end
 
@@ -165,10 +159,23 @@ local function safeCall(callThis, ...)
     end
 end
 
-local dataPath = vim.fn.stdpath('data') .. '/site/pack/'
+local dataPath = vim.fn.stdpath('data')
+
+local pluginsPath = dataPath .. '/site/pack/'
+
+print("- dataPath: " .. dataPath)
 
 local plugins = {
     plugins = {
+        {
+            org = 'neovim',
+            name = 'nvim-lspconfig',
+            gitName = 'nvim-lspconfig',
+            optional = false,
+            helpDocs = true,
+            setup = false,
+            setupParams = {}
+        },
         {
             org = 'EdenEast',
             name = 'nightfox',
@@ -225,9 +232,9 @@ local plugins = {
         end,
     path = function(plugin)
         if plugin.optional == true then
-            return dataPath .. plugin.org .. '/opt/' .. plugin.gitName
+            return pluginsPath .. plugin.org .. '/opt/' .. plugin.gitName
         else
-            return dataPath .. plugin.org .. '/start/' .. plugin.gitName
+            return pluginsPath .. plugin.org .. '/start/' .. plugin.gitName
         end
     end
 }
@@ -280,151 +287,69 @@ local function checkAllPlugins(plugins)
     end
 end
 
+local pathToLspConfigs = dataPath .. '/site/pack/neovim/start/nvim-lspconfig/lsp/'
+
+local LSPsInUse = {
+    {
+        fileTypeName = 'lua',
+        fileExtension = '.lua',
+        configFileName = 'lua_ls.lua'
+    },
+    {
+        fileTypeName = 'php',
+        fileExtension = '.php',
+        configFileName = 'phpactor.lua'
+    },
+    {
+        fileTypeName = 'javascript',
+        fileExtension = '.js',
+        configFileName = 'ts_ls.lua'
+    },
+    {
+        fileTypeName = 'typescript',
+        fileExtension = '.ts',
+        configFileName = 'ts_ls.lua'
+    },
+    {
+        fileTypeName = 'C#',
+        fileExtension = '.cs',
+        configFileName = 'omnisharp.lua'
+    },
+    {
+        fileTypeName = 'python',
+        fileExtension = '.py',
+        configFileName = 'pyright.lua'
+    },
+}
+
+local function setupLspClientAttachOnFileOpen()
+    vim.api.nvim_create_autocmd('FileType', {
+        pattern = '*',
+        callback = function(event)
+--             print('- event: \n' .. vim.inspect(event))
+--             local filePath = event.file
+--             print('- file path: \n' .. filePath)
+--             local reversedFilePath = string.reverse(filePath)
+--             print('- reversed file path: \n' .. reversedFilePath)
+--             local extensionIndexFromEnd = string.find(reversedFilePath, '.', 1, true)
+--             print('- extension from end index: \n' .. extensionIndexFromEnd)
+--             local fileExtension = string.sub(filePath, -extensionIndexFromEnd)
+--             local fileExtension = string.sub(event.file, - string.find(string.reverse(event.file), '.', 1, true)) 
+--             print('- file extension: \n' .. fileExtension)
+            for _, details in ipairs(LSPsInUse) do
+                if  string.sub(event.file, - string.find(string.reverse(event.file), '.', 1, true)) == details.fileExtension then
+                    print("- matched '" .. details.fileTypeName .. "' file type")
+                    vim.lsp.start(dofile(pathToLspConfigs .. details.configFileName))
+                end
+            end
+        end
+    })
+end
 
 safeCall(checkAllPlugins, plugins)
--- safeCall(require('vague').setup, {})
--- safeCall(require('kanagawa').setup, {})
 safeCall(vim.cmd, 'colorscheme kanagawa')
 
-vim.api.nvim_create_autocmd("FileType", {
-    pattern = "lua",
-    callback = function()
-        vim.lsp.start({
-            name = "lua_ls",
-            cmd = { "lua-language-server" },
-            root_dir = vim.fs.dirname(vim.fs.find({".git", ".luarc.json", ".luarc.jsonc"}, { upward = true })[1]),
-            settings = {
-                Lua = {
-                    codeLens = { enable = true },
-                    hint = { enable = true, semicolon = "Disable" },
-                },
-            },
-        })
-    end,
-})
-
-vim.api.nvim_create_autocmd("Filetype", {
-    pattern = 'csharp',
-    callback = function()
-        vim.lsp.start({
-            name = 'c-sharp',
-            cmd = {'something'},
-            root_dir = vim.fs.dirname(vim.fs.find({".git", ".luarc.json", ".luarc.jsonc"}, { upward = true })[1]),
-            settings = {
-                csharp = {
-                }
-            }
-        })
-    end
-})
-
-vim.api.nvim_create_autocmd("Filetype", {
-    pattern = 'php',
-    callback = function()
-        print('starting php-language-server')
-        vim.lsp.start({
-            name = 'phpactor',
-            root_dir = vim.fs.dirname(vim.fs.find({".git", "composer.json"}, { upward = true })[1]),
-            cmd = {
-                'docker',
-                'run',
-                '--rm',
-                '-i',
-                '-v',
-                root_dir .. ':/app',
-                'phpactor-ls',
-                'phpactor',
-                'language-server',
-                '--stdio'
-            }, -- docker build -t phpactor-ls .
-        })
-    end
-})
-
-vim.api.nvim_create_autocmd("Filetype", {
-    pattern = 'js',
-    callback = function()
-    end
-})
+safeCall(setupLspClientAttachOnFileOpen)
 
 
-vim.api.nvim_create_autocmd('FileType', {
-    pattern = 'python',
-    callback = function()
-        vim.lsp.start({
-            name = 'pylsp',
-            cmd = {'pylsp'},
-            root_dir = vim.fs.dirname(vim.fs.find({".git", "pyproject.toml"}, { upward = true })[1]),
-            settings = {
-                pylsp = {
-                    configurationSources = {'pycodestyle'},
-                    plugins = {
-                        jedi_completion = {
-                            enabled = true,
-                            fuzzy = true,
-                            include_params = true
-                        },
-                        jedi = {
-                            extra_paths = {
-                                '/home/alex/repos/picar-x',
-                                '/home/alex/repos/robot_hat'
-                            }
-                        },
-                        jedi_definition = {
-                            enabled = true,
-                            follow_imports = true
-                        },
-                        jedi_hover = {
-                            enabled = true,
-                        },
-                        jedi_symbols = {
-                            enabled = true
-                        },
-                        jedi_references = {
-                            enabled = true
-                        },
-                        pycodestyle = {
-                            enabled = true,
-                            indent = 4
-                        },
-                        pyflakes = {
-                            enabled = true
-                        }
-                    }
-                },
-            }
-    	})
-        print("tried to start 'pylsp'")
-    end,
-})
 
-
- 
-    -- blue           
--- ~            carbonfox      
--- ~            darkblue       
--- ~            dawnfox        
--- ~            dayfox         
--- ~            default        
--- ~            delek          
--- ~            desert         
--- ~            duskfox        
--- ~ ok-ish     elflord       deep black, yellow line nr, neon text, perfect closing bracket cursor 
--- ~            evening        
--- ~ good + broken     habamax       very dark pleasant grey, clear grey line nr, nice orange current line, subtle/non intrusive but clear to see current line highlight, gentle but good coloured text, terrible closing bracket cursor completely confusing and makes whole scheme unuseable 
--- ~    bad     industry       
--- ~ 1 feature  koehler        like default but with deep black bg, annoying to look at, PERFECT closing bracket cursor
--- ~            lunaperche     
--- ~            morning        
--- ~            murphy         
--- ~            nightfox       
--- ~            nordfox        
--- ~  meh/ok    pablo          
--- ~            peachpuff      
--- ~  ok-ish    quiet         deep black, monochrome, all good, perfect closing bracket cursor, white text and grey comments, literally NO other colour highlight - not even strings 
--- ~            ron            
--- ~            shine          
--- ~            slate          
--- ~            terafox        
--- ~            torte          
--- init.lua     zellner     
