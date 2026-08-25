@@ -147,6 +147,23 @@ end
 vim.keymap.set({"n", "v"}, "<M-j>", fastDownScroll)
 vim.keymap.set({"n", "v"}, "<M-k>", fastUpScroll)
 
+-- Diagnostic Config & Keymaps
+-- See :help vim.diagnostic.Opts
+vim.diagnostic.config {
+  update_in_insert = false,
+  severity_sort = true,
+  float = { border = 'rounded', source = 'if_many' },
+  underline = { severity = vim.diagnostic.severity.ERROR },
+
+  -- Can switch between these as you prefer
+  virtual_text = false, -- Text shows up at the end of the line
+  virtual_lines = true, -- Teest shows up underneath the line, with virtual lines
+
+  -- Auto open the float, so you can easily read the errors when jumping with `[d` and `]d`
+  jump = { float = true },
+}
+
+
 local function safeCall(callThis, ...)
     local function errorHandler(error)
         return debug.traceback(error, 2)
@@ -320,6 +337,11 @@ local LSPsInUse = {
         fileExtension = '.py',
         configFileName = 'pyright.lua'
     },
+    {
+        fileTypeName = 'c',
+        fileExtension = '.c',
+        configFileName = 'clangd.lua',
+    },
 }
 
 local function setupLspClientAttachOnFileOpen()
@@ -337,9 +359,11 @@ local function setupLspClientAttachOnFileOpen()
 --             local fileExtension = string.sub(event.file, - string.find(string.reverse(event.file), '.', 1, true)) 
 --             print('- file extension: \n' .. fileExtension)
             for _, details in ipairs(LSPsInUse) do
-                if  string.sub(event.file, - string.find(string.reverse(event.file), '.', 1, true)) == details.fileExtension then
-                    print("- matched '" .. details.fileTypeName .. "' file type")
-                    vim.lsp.start(dofile(pathToLspConfigs .. details.configFileName))
+                if string.find(event.file, '.', 1, true) ~= nil then
+                    if  string.sub(event.file, - string.find(string.reverse(event.file), '.', 1, true)) == details.fileExtension then
+                        print("- matched '" .. details.fileTypeName .. "' file type")
+                        vim.lsp.start(dofile(pathToLspConfigs .. details.configFileName))
+                    end
                 end
             end
         end
